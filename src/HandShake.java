@@ -1,10 +1,12 @@
 public class HandShake {
-    private String handshake_header = "P2PFILESHARINGPROJ";
-    private String zero_bits = "0000000000";
+    private String handshake_header;
+    private String zero_bits;
     private String peer_id;
 
     public HandShake(Integer id) {
-        peer_id = String.valueOf(id);
+        peer_id          = String.valueOf(id);
+        handshake_header = "P2PFILESHARINGPROJ";
+        zero_bits        = "0000000000";
     }
 
     public byte[] BuildHandshakeMessage() {
