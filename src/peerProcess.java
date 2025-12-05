@@ -7,16 +7,21 @@ import static java.lang.System.exit;
 
 public class peerProcess {
 
-    private static int peer_id;
-    private static PeerDetails curr_peer;
-    private static HashMap<String, String> config_params;
-    private static HashMap<Integer, PeerDetails> neighbors_list;
-    private static ArrayList<Integer> previous_neighbors_ids;
+    private static Integer peer_id; // Current Host's peer id
+    private static PeerDetails curr_peer; // To store current peer details as PeerDetails object
+    private static HashMap<String, String> config_params; // Stores the Common.cfg parameters
+    private static HashMap<Integer, PeerDetails> neighbors_list; // All Neighbors stored as hashmap
+    private static ArrayList<Integer> previous_neighbors_ids; // List of Neighbors listed before current peer
+    private static PeerClient peer_client;
+    private static PeerServer peer_server;
+    public static Logger logger;
+
     public peerProcess(int id) {
         peer_id                = id;
         config_params          = new HashMap<>();
         neighbors_list         = new HashMap<>();
         previous_neighbors_ids = new ArrayList<>();
+        logger                 = new Logger(peer_id.toString());
     }
 
     // Method to read common.cfg and store values in a hashmap
@@ -27,6 +32,7 @@ public class peerProcess {
             BufferedReader file = new BufferedReader(new FileReader("Common.cfg"));
             while((line = file.readLine()) != null) {
                 line_split = line.split(" ");
+                // Store as a hashmap with key as parameter name and value as parameter's value
                 config_params.put(line_split[0], line_split[1]);
             }
         }
@@ -47,7 +53,7 @@ public class peerProcess {
             while((line = file.readLine()) != null) {
                 // Peer information stored as PeerDetails object
                 PeerDetails peer_details = new PeerDetails(line);
-                p_id = Integer.parseInt(line.split(" ", 1)[0]);
+                p_id = Integer.parseInt(line.split(" ")[0]);
                 if (!found_peer && p_id == peer_id) {
                     found_peer = true;
                     curr_peer  = peer_details;
@@ -67,15 +73,15 @@ public class peerProcess {
 
     // Method to Set the bit fields based on the file size and piece size
     public void SetBitField() {
-        int file_size    = Integer.getInteger(config_params.get("FileSize"));
-        int piece_size   = Integer.getInteger(config_params.get("PieceSize"));
+        int file_size    = Integer.parseInt(config_params.get("FileSize"));
+        int piece_size   = Integer.parseInt(config_params.get("PieceSize"));
         int no_of_pieces = (int) Math.ceil((double)file_size/piece_size);
 
         BitSet bitfield_piece_index = new BitSet(no_of_pieces);
 
         // Sets all bit values to 1 if has_file is true else the values will be 0 by default
         if(curr_peer.has_file) {
-            for(int i = 1; i <= no_of_pieces; i++) {
+            for(int i = 0; i < no_of_pieces; i++) {
                 bitfield_piece_index.set(i);
             }
         }
@@ -93,9 +99,12 @@ public class peerProcess {
         // Read PeerInfo.cfg file
         peer.ReadPeerInfoCfg();
         peer.SetBitField();
-        // Creating PeerClient object
-        PeerClient peer_client = new PeerClient(curr_peer, neighbors_list, previous_neighbors_ids);
-        // Invoke the run() method in peer_client to set up TCP Connection with peers listed before current peer
+        
+        // Creating PeerClient and PeerServer object
+        peer_client = new PeerClient(curr_peer, neighbors_list, previous_neighbors_ids, logger);
+        peer_server = new PeerServer(curr_peer, neighbors_list, previous_neighbors_ids, logger);
         peer_client.start();
+        peer_server.start();
     }
+
 }

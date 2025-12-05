@@ -6,15 +6,19 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 
+// PeerClient is responsible to establish TCP Connections with previous peers
 public class PeerClient extends Thread{
 
     private PeerDetails curr_peer;
     private HashMap<Integer, PeerDetails> neighbors_list;
     private ArrayList<Integer> previous_neighbors_ids;
-    public PeerClient(PeerDetails curr_peer, HashMap<Integer, PeerDetails>  neighbors_list, ArrayList<Integer>  previous_neighbors_ids) {
+    private Logger logger;
+
+    public PeerClient(PeerDetails curr_peer, HashMap<Integer, PeerDetails>  neighbors_list, ArrayList<Integer>  previous_neighbors_ids, Logger logger) {
         this.curr_peer              = curr_peer;
         this.neighbors_list         = neighbors_list;
         this.previous_neighbors_ids = previous_neighbors_ids;
+        this.logger                 = logger;
     }
 
     public void run() {
@@ -26,8 +30,8 @@ public class PeerClient extends Thread{
 
     public class Client extends Thread{
         Socket requestSocket;           //socket connect to the server
-        ObjectOutputStream out;         //stream write to the socket
-        ObjectInputStream in;          //stream read from the socket
+        DataOutputStream out;         //stream write to the socket
+        DataInputStream in;          //stream read from the socket
         String message;                //message send to the server
         String MESSAGE;                //capitalized message read from the server
         PeerDetails neighbor_peer;
@@ -38,45 +42,40 @@ public class PeerClient extends Thread{
 
         public void run() {
             try {
-                //create a socket to connect to the server
-                requestSocket        = new Socket(neighbor_peer.hostname, neighbor_peer.peer_port);
+                //create a socket to connect to the Peerserver og neighbors
+                requestSocket = new Socket(neighbor_peer.hostname, neighbor_peer.peer_port);
 
-                System.out.println("Connected to " + neighbor_peer.hostname + "in port " + neighbor_peer.peer_port);
+                logger.log("makes a connection to Peer " + neighbor_peer.peer_id);
                 //initialize inputStream and outputStream
-                out = new ObjectOutputStream(requestSocket.getOutputStream());
+                out = new DataOutputStream(requestSocket.getOutputStream());
                 out.flush();
-                in = new ObjectInputStream(requestSocket.getInputStream());
+                in = new DataInputStream(requestSocket.getInputStream());
 
+                // Save the socket, out and in details in neighbor_peer object to use it later
                 neighbor_peer.socket = requestSocket;
                 neighbor_peer.out    = out;
                 neighbor_peer.in     = in;
 
+                // Create a handshake object with current peer id, build the handshake message
+                // and send it to the neighbor
                 HandShake hand_shake = new HandShake(curr_peer.peer_id);
-                HelperMethods.sendMessage(hand_shake.BuildHandshakeMessage(), out);
+                Utils.sendMessage(hand_shake.BuildHandshakeMessage(), out);
 
                 while (true) {
-                    // HandShake message received and verified
-                    byte[] hand_shake_rcv = (byte[]) in.readObject();
+                    // Wait for HandShake message to be received and verified
+                    byte[] hand_shake_rcv = (byte[]) in.readAllBytes();
                     if (hand_shake.VerifyHandShakeMessage(hand_shake_rcv, neighbor_peer.peer_id))
                         break;
                 }
 
-                Message bit_field_message = new Message(0, (byte)5, curr_peer.bitfield_piece_index.toByteArray());
-                HelperMethods.sendMessage(bit_field_message.BuildMessageByteArray(), out);
+                // Once HandShake is completed, create a bit field message and send it to the neighbor
+                Message bit_field_message = new Message(curr_peer.bitfield_piece_index.size()/8, (byte)5, curr_peer.bitfield_piece_index.toByteArray());
+                Utils.sendMessage(bit_field_message.BuildMessageByteArray(), out);
 
+                // Create a P2PMessageHandler for each of the TCP Connections which will be responsible
+                // to listen and handle all type of messages
                 P2PMessageHandler message_handler = new P2PMessageHandler(curr_peer, neighbor_peer);
                 message_handler.MessageListener();
-
-
-//                Message bit_field_rcv = new Message(0, (byte)5, in.readAllBytes());
-//                boolean interested = bit_field_rcv.HandleBitFieldMessage(bitfield_piece_index);
-//                if (interested) {
-//                    Message interested_msg = new Message(0, (byte)2, new byte[0]);
-//                    sendMessage(interested_msg.BuildMessageByteArray());
-//                } else {
-//                    Message not_interested_msg = new Message(0, (byte)2, new byte[0]);
-//                    sendMessage(not_interested_msg.BuildMessageByteArray());
-//                }
 
             } catch (ConnectException e) {
                 System.err.println("Connection refused. You need to initiate a server first.");
@@ -84,7 +83,7 @@ public class PeerClient extends Thread{
                 System.err.println("You are trying to connect to an unknown host!");
             } catch (IOException ioException) {
                 ioException.printStackTrace();
-            } catch (ClassNotFoundException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
                 //Close connections
@@ -102,24 +101,12 @@ public class PeerClient extends Thread{
         {
             try{
                 //stream write the message
-                out.writeObject(msg);
+                out.writeBytes(msg);
                 out.flush();
             }
             catch(IOException ioException){
                 ioException.printStackTrace();
             }
         }
-
-//        void sendMessage(byte[] msg)
-//        {
-//            try{
-//                //stream write the message
-//                out.writeObject(msg);
-//                out.flush();
-//            }
-//            catch(IOException ioException){
-//                ioException.printStackTrace();
-//            }
-//        }
     }
 }

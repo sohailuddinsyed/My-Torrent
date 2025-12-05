@@ -1,3 +1,4 @@
+// An enum of different message types
 public enum MessageType {
     CHOKE,
     UNCHOKE,

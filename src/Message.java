@@ -6,12 +6,14 @@ public class Message {
     private Byte message_type;
     private byte[] message_payload;
 
+    // Message constructor to initialize message fields
     public Message(int message_length, byte message_type, byte[] message_payload) {
         this.message_length = message_length;
         this.message_type = message_type;
         this.message_payload = message_payload;
     }
 
+    // Message constructor to initialize message fields from a byte array
     public Message(byte[] message) {
         String msg = new String(message);
         this.message_length  = Integer.getInteger(msg.substring(0, 4));
@@ -19,18 +21,20 @@ public class Message {
         this.message_payload = msg.substring(5).getBytes();
     }
 
+    // Returns a byte array of the message
     public byte[] BuildMessageByteArray() {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             try {
-                buffer.write(message_payload);
                 buffer.write(message_length);
                 buffer.write(message_type);
+                buffer.write(message_payload);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         return buffer.toByteArray();
     }
 
+    // Return the type of the message as an enum
     public MessageType GetMessageType() {
         switch(message_type) {
             case 0: return MessageType.CHOKE;
@@ -45,10 +49,12 @@ public class Message {
         }
     }
 
+    // Return the message length field
     public Integer GetMessageLength() {
         return message_length;
     }
 
+    // Return the message payload field
     public byte[] GetMessagePayload() {
         return message_payload;
     }
