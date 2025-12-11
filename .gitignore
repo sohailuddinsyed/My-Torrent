@@ -1,1 +1,6 @@
 *.class
+*.log
+**/*.class
+**/.idea
+**/.vscode
+**/BitTorrent.iml

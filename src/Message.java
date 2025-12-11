@@ -1,5 +1,8 @@
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public class Message {
     private Integer message_length;
@@ -7,28 +10,33 @@ public class Message {
     private byte[] message_payload;
 
     // Message constructor to initialize message fields
-    public Message(int message_length, byte message_type, byte[] message_payload) {
-        this.message_length = message_length;
-        this.message_type = message_type;
+    // TODO: message_length should be of type byte[]?
+    public Message(MessageType message_type, byte[] message_payload) {
+        this.message_type = MakeMessageType(message_type);
         this.message_payload = message_payload;
+        // 4-byte message length specifies the message length in bytes. It does not include the 
+        // length of the message length field itself
+        this.message_length = message_payload.length;
     }
 
     // Message constructor to initialize message fields from a byte array
-    public Message(byte[] message) {
-        String msg = new String(message);
-        this.message_length  = Integer.getInteger(msg.substring(0, 4));
+    public Message(byte[] message) {       
+        this.message_length  = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, 4)).getInt();
         this.message_type    = message[4];
-        this.message_payload = msg.substring(5).getBytes();
+        this.message_payload = ByteBuffer.wrap(Arrays.copyOfRange(message, 5, 5 + message_length)).array();
     }
 
     // Returns a byte array of the message
     public byte[] BuildMessageByteArray() {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             try {
-                buffer.write(message_length);
+                // Writing message_length as a byte[] of size 4 since Integer is truncated to 1 byte in Java
+                byte[] messg_len = new byte[4];
+                messg_len = ByteBuffer.allocate(4).putInt(message_length).array();
+                buffer.writeBytes(messg_len);
                 buffer.write(message_type);
-                buffer.write(message_payload);
-            } catch (IOException e) {
+                buffer.writeBytes(message_payload);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         return buffer.toByteArray();
@@ -46,6 +54,20 @@ public class Message {
             case 6: return MessageType.REQUEST;
             case 7: return MessageType.PIECE;
             default: return MessageType.UNKNOWN;
+        }
+    }
+
+    public byte MakeMessageType(MessageType message_type) {
+        switch(message_type) {
+            case CHOKE: return (byte) 0;
+            case UNCHOKE: return (byte) 1;
+            case INTERESTED: return (byte) 2;
+            case NOTINTERESTED: return (byte) 3;
+            case HAVE: return (byte) 4;
+            case BITFIELD: return (byte) 5;
+            case REQUEST: return (byte) 6;
+            case PIECE: return (byte) 7;
+            default: return (byte) 10;
         }
     }
 

@@ -7,21 +7,28 @@ import static java.lang.System.exit;
 
 public class peerProcess {
 
-    private static Integer peer_id; // Current Host's peer id
-    private static PeerDetails curr_peer; // To store current peer details as PeerDetails object
+    public Integer peer_id; // Current Host's peer id
+    public PeerDetails host_details; // To store current peer details as PeerDetails object
     private static HashMap<String, String> config_params; // Stores the Common.cfg parameters
-    private static HashMap<Integer, PeerDetails> neighbors_list; // All Neighbors stored as hashmap
-    private static ArrayList<Integer> previous_neighbors_ids; // List of Neighbors listed before current peer
+    public HashMap<Integer, PeerDetails> neighbors_list; // All Neighbors stored as hashmap
+    public ArrayList<Integer> previous_neighbors_ids; // List of Neighbors listed before current peer
+    public HashMap<Integer, Boolean> neighbors_interested_in_host;
+    public HashMap<Integer, Boolean> choked_by_neighbors;
+    public HashMap<Integer, Boolean> unchoked_by_host;
+    public Set<Integer> requested_indices;
     private static PeerClient peer_client;
     private static PeerServer peer_server;
-    public static Logger logger;
+    public Logger logger;
 
     public peerProcess(int id) {
-        peer_id                = id;
-        config_params          = new HashMap<>();
-        neighbors_list         = new HashMap<>();
-        previous_neighbors_ids = new ArrayList<>();
-        logger                 = new Logger(peer_id.toString());
+        peer_id                      = id;
+        config_params                = new HashMap<>();
+        neighbors_list               = new HashMap<>();
+        previous_neighbors_ids       = new ArrayList<>();
+        neighbors_interested_in_host = new HashMap<>();
+        choked_by_neighbors          = new HashMap<>();
+        requested_indices            = new HashSet<>();
+        logger                       = new Logger(peer_id.toString());
     }
 
     // Method to read common.cfg and store values in a hashmap
@@ -56,7 +63,7 @@ public class peerProcess {
                 p_id = Integer.parseInt(line.split(" ")[0]);
                 if (!found_peer && p_id == peer_id) {
                     found_peer = true;
-                    curr_peer  = peer_details;
+                    host_details  = peer_details;
                 } else {
                     // Append previous_neighbors_ids only until we find current peer
                     if (!found_peer)
@@ -76,16 +83,16 @@ public class peerProcess {
         int file_size    = Integer.parseInt(config_params.get("FileSize"));
         int piece_size   = Integer.parseInt(config_params.get("PieceSize"));
         int no_of_pieces = (int) Math.ceil((double)file_size/piece_size);
-
+        host_details.no_of_pieces = no_of_pieces;
         BitSet bitfield_piece_index = new BitSet(no_of_pieces);
 
         // Sets all bit values to 1 if has_file is true else the values will be 0 by default
-        if(curr_peer.has_file) {
+        if(host_details.has_file) {
             for(int i = 0; i < no_of_pieces; i++) {
                 bitfield_piece_index.set(i);
             }
         }
-        curr_peer.bitfield_piece_index = bitfield_piece_index;
+        host_details.bitfield_piece_index = bitfield_piece_index;
     }
 
     public static void main(String args[]) {
@@ -101,10 +108,9 @@ public class peerProcess {
         peer.SetBitField();
         
         // Creating PeerClient and PeerServer object
-        peer_client = new PeerClient(curr_peer, neighbors_list, previous_neighbors_ids, logger);
-        peer_server = new PeerServer(curr_peer, neighbors_list, previous_neighbors_ids, logger);
+        peer_client = new PeerClient(peer);
+        peer_server = new PeerServer(peer);
         peer_client.start();
         peer_server.start();
     }
-
 }

@@ -4,11 +4,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.BitSet;
+import java.util.HashMap;
 
 public class PeerDetails {
     public String hostname; // hostname of the peer
     public Boolean has_file; // True if the peer has complete file else False
-    public int peer_id, peer_port; // Peer ID and port of the peer
+    public int peer_id, peer_port, no_of_pieces; // Peer ID and port of the peer
     public BitSet bitfield_piece_index; // BitField of the peer
     Socket socket; // Socket through which current host connected to this peer
     DataOutputStream out; // Socket's DataOutputStream
