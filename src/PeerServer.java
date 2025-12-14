@@ -1,9 +1,5 @@
 import java.net.*;
 import java.io.*;
-import java.nio.*;
-import java.nio.channels.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
 
 public class PeerServer extends Thread {
 
@@ -43,7 +39,6 @@ public class PeerServer extends Thread {
      */
     private class Handler extends Thread {
         private byte[] hand_shake_rcv;    //message received from the client
-        private String MESSAGE;    //uppercase message send to the client
         private Socket connection;
         private DataInputStream in;	//stream read from the socket
         private DataOutputStream out;    //stream write to the socket
@@ -63,7 +58,7 @@ public class PeerServer extends Thread {
                     while(true)
                     {
                         // Receive handshake from client
-                        int msg_len = in.read(hand_shake_rcv);
+                        in.read(hand_shake_rcv);
                         Integer client_peer_id = Integer.valueOf(new String(hand_shake_rcv).substring(28));
                         
                         // If Handshake verification gets field, then break
@@ -113,20 +108,5 @@ public class PeerServer extends Thread {
                 }
             }
         }
-
-        //send a message to the output stream
-        public void sendMessage(String msg)
-        {
-            try{
-                out.writeBytes(msg);
-                out.flush();
-                System.out.println("Send message: " + msg + " to Client ");
-            }
-            catch(IOException ioException){
-                ioException.printStackTrace();
-            }
-        }
-
     }
-
 }

@@ -2,9 +2,6 @@ import java.io.*;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
 
 // PeerClient is responsible to establish TCP Connections with previous peers
 public class PeerClient extends Thread{

@@ -1,5 +1,3 @@
-import java.nio.charset.StandardCharsets;
-
 public class HandShake {
     private static String handshake_header;
     private String zero_bits;
