@@ -33,7 +33,6 @@ public class peerProcess {
         requested_indices            = new HashSet<>();
         neighbor_downloads           = new HashMap<>();
         logger                       = new Logger(peer_id.toString());
-        file_handler                 = new FileHandler(this);
     }
 
     // Method to read common.cfg and store values in a hashmap
@@ -103,8 +102,25 @@ public class peerProcess {
 
     // file_handler handles converting file to pieces, copying and fetching pieces, constructing file from pieces
     public void HandleFile() throws IOException {
+        file_handler = new FileHandler(this);
         if (host_details.has_file)
             file_handler.ConvertFileToPieces();
+    }
+
+    // Only for debugging, delete before submission
+    public void CopyHandleFile() throws IOException {
+        peerProcess copy_peer = new peerProcess(1002);
+        copy_peer.host_details = new PeerDetails("1002 localhost 6002 0");
+        copy_peer.no_of_pieces = this.no_of_pieces;
+        copy_peer.config_params = this.config_params;
+        copy_peer.SetBitField();
+        FileHandler copy_file_handler = new FileHandler(copy_peer);
+
+        for (int i = 0; i < no_of_pieces; i++) {
+            copy_file_handler.SetPiece(i, file_handler.GetPiece(i));
+        }
+        copy_file_handler.BuildFile();
+
     }
 
     public static void main(String args[]) throws IOException {
@@ -119,6 +135,7 @@ public class peerProcess {
         peer.ReadPeerInfoCfg();
         peer.SetBitField();
         peer.HandleFile();
+        //peer.CopyHandleFile();
         
         // Creating PeerClient and PeerServer object
         peer_client = new PeerClient(peer);

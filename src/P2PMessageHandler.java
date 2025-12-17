@@ -124,6 +124,10 @@ public class P2PMessageHandler {
 
         host_peer.file_handler.SetPiece(index, piece_payload);
 
+        // Broadcast every neighbor about this new piece availability using HAVE message
+        Message msg = new Message(MessageType.HAVE, ByteBuffer.allocate(4).putInt(index).array());
+        Utils.BroadcastMessage(host_peer, msg);
+
         // Check if all pieces received and build the file
         if (Utils.CheckAllPiecesReceived(host_peer.host_details.bitfield_piece_index, host_peer.no_of_pieces)) {
             host_peer.file_handler.BuildFile();

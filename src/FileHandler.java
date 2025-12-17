@@ -10,9 +10,12 @@ public class FileHandler {
     private static String file_name;
     private peerProcess host_peer;
     private byte[][] file_pieces;
+    private Integer piece_size;
     public FileHandler(peerProcess host_peer) {
         file_name = host_peer.peer_id.toString() + "/" + host_peer.config_params.get("FileName");
         this.host_peer = host_peer;
+        piece_size = Integer.parseInt(host_peer.config_params.get("PieceSize"));
+        file_pieces = new byte[host_peer.no_of_pieces][piece_size];
     }
 
     // Method to convert file into pieces based on the configuration details
@@ -23,16 +26,16 @@ public class FileHandler {
         File file = new File(file_name);
         byte[] file_data_in_bytes = Files.readAllBytes(file.toPath());
 
-        int piece_size = Integer.parseInt(host_peer.config_params.get("PieceSize"));
-        //int file_bytes_index = 0;
+        int file_bytes_index = 0;
 
         // Creating byte array for each piece and copying contents from file
         for (int i = 0; i < host_peer.no_of_pieces; i++) {
-            //byte[] piece = new byte[piece_size];
-            byte[] piece = Arrays.copyOfRange(file_data_in_bytes, i*piece_size, piece_size*(i+1));
-//            for (int j = 0; j < piece_size; j++) {
-//                piece[j] = file_data_in_bytes[file_bytes_index++];
-//            }
+            byte[] piece = new byte[piece_size];
+            //Cannot use below because last part may not be same as piece_size
+            //byte[] piece = Arrays.copyOfRange(file_data_in_bytes, i*piece_size, piece_size*(i+1));
+            for (int j = 0; j < piece_size && file_bytes_index<file_data_in_bytes.length; j++) {
+                piece[j] = file_data_in_bytes[file_bytes_index++];
+            }
             file_pieces[i] = piece;
         }
     }
