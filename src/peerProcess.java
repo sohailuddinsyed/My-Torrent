@@ -76,8 +76,8 @@ public class peerProcess {
                     // All the neighbors information is stored in a hashmap
                     neighbors_list.put(p_id, peer_details);
                 }
-                choked_by_neighbors.put(peer_id, true);
-                unchoked_by_host.put(peer_id, false);
+                choked_by_neighbors.put(p_id, true);
+                unchoked_by_host.put(p_id, false);
             }
             file.close();
         }
@@ -91,12 +91,13 @@ public class peerProcess {
         int file_size  = Integer.parseInt(config_params.get("FileSize"));
         int piece_size = Integer.parseInt(config_params.get("PieceSize"));
         no_of_pieces   = (int) Math.ceil((double)file_size/piece_size);
-        BitSet bitfield_piece_index = new BitSet(no_of_pieces);
+        BitSet bitfield_piece_index = new BitSet(no_of_pieces + 1);
 
         // Sets all bit values to 1 if has_file is true else 0
         for(int i = 0; i < no_of_pieces; i++) {
             bitfield_piece_index.set(i, host_details.has_file);
         }
+        bitfield_piece_index.set(no_of_pieces);
         host_details.bitfield_piece_index = bitfield_piece_index;
     }
 

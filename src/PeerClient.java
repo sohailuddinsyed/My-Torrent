@@ -47,6 +47,8 @@ public class PeerClient extends Thread{
                 neighbor_peer.out    = out;
                 neighbor_peer.in     = in;
 
+                host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
+
                 // Create a handshake object with current peer id, build the handshake message
                 // and send it to the neighbor
                 HandShake hand_shake = new HandShake(host_peer.peer_id);

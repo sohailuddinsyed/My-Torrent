@@ -27,11 +27,11 @@ public class SelectNeighbors extends Thread {
                     // Store all interested neighbors in a list
                     ArrayList<Integer> interested_neighs = new ArrayList<>();
                     
-                    // Find all inetrested neighbors
+                    // Find all interested neighbors
                     for(Map.Entry<Integer, Boolean> entry : host_peer.neighbors_interested_in_host.entrySet()) {
                         int peer_id = entry.getKey();
                         boolean interested = entry.getValue();
-                        if(host_has_file || interested) 
+                        if(interested) 
                             interested_neighs.add(peer_id);
                     }
 
@@ -68,6 +68,9 @@ public class SelectNeighbors extends Thread {
                     }
                     if(unchoke_list.length() > 0)
                         host_peer.logger.log("has the preferred neighbors" + unchoke_list);
+                    
+                    // Clear downloads to record new values for the next interval
+                    host_peer.neighbor_downloads.clear();
                     
                     // Sleep for interval 'p'
                     Thread.sleep((int)p * 1000);

@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException; 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -11,7 +12,17 @@ public class Logger {
     public Logger(String peer) {
         peer_name = peer;
         // Required log file name
-        String file_name = "log_peer_" + peer + ".log";
+        String curr_dir = System.getProperty("user.dir");
+        String file_name = curr_dir + "/logs/log_peer_" + peer + ".log";
+
+        try {
+            FileOutputStream fos = new FileOutputStream(file_name, true);
+            PrintStream ps = new PrintStream(fos);
+            System.setErr(ps);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         log_file_name = file_name;
         try {
             File file = new File(log_file_name);

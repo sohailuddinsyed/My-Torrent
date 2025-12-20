@@ -73,8 +73,14 @@ public class P2PMessageHandler {
     // Handler for 'have' message type
     public void HandleHaveMessage(Message message_received) {
         // Set the bitfield index received from the neighbor_peer
-        int bitfield_index = Integer.parseInt(message_received.GetMessagePayload().toString());
+        if(host_peer.host_details.has_file)
+            return;
+        
+        int bitfield_index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();;
         neighbor_peer.bitfield_piece_index.set(bitfield_index);
+
+        // Set interest as false
+        host_peer.neighbors_interested_in_host.put(neighbor_peer.peer_id, false);
 
         // Check if interested
         boolean send_interested = Utils.CheckInterestInIndex(host_peer.host_details, neighbor_peer, bitfield_index);
@@ -94,7 +100,6 @@ public class P2PMessageHandler {
         // Below should not happen as the request is received only if the host has required piece
         if (!host_peer.host_details.bitfield_piece_index.get(index))
             return;
-
         // Get the requested index in byte format
         byte[] message_payload = message_received.GetMessagePayload();
 
@@ -131,9 +136,18 @@ public class P2PMessageHandler {
         // Check if all pieces received and build the file
         if (Utils.CheckAllPiecesReceived(host_peer.host_details.bitfield_piece_index, host_peer.no_of_pieces)) {
             host_peer.file_handler.BuildFile();
+            host_peer.host_details.has_file = true;
+            host_peer.logger.log("has downloaded the complete file.");
             // TODO: Check if host is not sending any data and terminate?
         }
 
+        // Request more pieces
+        int interested_index = Utils.GetInterestIndex(host_peer, neighbor_peer);
+        if (interested_index != -1) {
+            Message messg = new Message(MessageType.REQUEST, ByteBuffer.allocate(4).putInt(interested_index).array());
+            Utils.sendMessage(messg.BuildMessageByteArray(), neighbor_peer.out);
+            host_peer.requested_indices.add(interested_index);
+        }
     }
 
     public void SendUnChokedMessage() {
@@ -153,8 +167,7 @@ public class P2PMessageHandler {
             if(chocked_by_host && host_peer.unchoked_by_host.getOrDefault(neighbor_peer.peer_id, false)) {
                 chocked_by_host = false;
                 SendUnChokedMessage();
-            }
-            if(!chocked_by_host && !host_peer.unchoked_by_host.get(neighbor_peer.peer_id)) {
+            } else if(!chocked_by_host && !host_peer.unchoked_by_host.get(neighbor_peer.peer_id)) {
                 chocked_by_host = true;
                 SendChokedMessage();
             }
@@ -190,7 +203,8 @@ public class P2PMessageHandler {
                         break;
                     }
                     case HAVE: {
-                        host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                        int index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();;
+                        host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from Peer " + neighbor_peer.peer_id);
                         HandleHaveMessage(message_received);
                         break;
                     }

@@ -39,7 +39,8 @@ public class Utils {
     }
 
     public static boolean CheckAllPiecesReceived(BitSet bitSet, int length) {
-        return bitSet.cardinality() == length;
+        // Set the bit bitfield_piece_index[length] to avoid non-null errors, thus cardinality has an extra bit
+        return (bitSet.cardinality() - 1) == length;
     }
 
 
