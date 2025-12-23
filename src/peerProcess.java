@@ -13,11 +13,13 @@ public class peerProcess {
     public HashMap<Integer, Boolean> neighbors_interested_in_host;
     public HashMap<Integer, Boolean> choked_by_neighbors;
     public HashMap<Integer, Boolean> unchoked_by_host;
+    public Integer opt_neighbor;
     public HashMap<Integer, Integer> neighbor_downloads;
     public Set<Integer> requested_indices;
     private static PeerClient peer_client;
     private static PeerServer peer_server;
     private static SelectNeighbors select_neighbors;
+    private static SelectOptNeighbor select_opt_neighbors;
     public Logger logger;
     public Integer no_of_pieces;
     public FileHandler file_handler;
@@ -142,9 +144,11 @@ public class peerProcess {
         peer_client = new PeerClient(peer);
         peer_server = new PeerServer(peer);
         select_neighbors = new SelectNeighbors(peer);
-        
+        select_opt_neighbors = new SelectOptNeighbor(peer);
         peer_client.start();
         peer_server.start();
         select_neighbors.start();
+        select_opt_neighbors.start();
+
     }
 }

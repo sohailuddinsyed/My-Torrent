@@ -13,7 +13,7 @@ public class SelectNeighbors extends Thread {
     }
     public void run() {
         // Read the time interval 'P' and preferred neighbors 'K'
-        float p = Integer.parseInt(host_peer.config_params.get("UnchokingInterval"));
+        float p = Float.parseFloat(host_peer.config_params.get("UnchokingInterval"));
         int k = Integer.parseInt(host_peer.config_params.get("NumberOfPreferredNeighbors"));
         try {
             while(true) {
@@ -37,6 +37,7 @@ public class SelectNeighbors extends Thread {
 
                     // Calculate download rate for all neighbors
                     int interested_count = interested_neighs.size();
+                    
                     float[][] download_rates = new float[interested_count][2];
 
                     // If host has file, download rate is randomly assigned else computed
