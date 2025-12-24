@@ -73,7 +73,7 @@ public class PeerServer extends Thread {
                         neighbor_peer.out    = out;
                         neighbor_peer.in     = in;
 
-                        host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
+                        // host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
 
                         // Send handshake to client
                         Utils.sendMessage(hand_shake_msg.BuildHandshakeMessage(), out);
@@ -93,7 +93,7 @@ public class PeerServer extends Thread {
                 }
                 catch(Exception classnot){
                     System.err.println("Data received in unknown format");
-                    System.err.println(classnot.getStackTrace());
+                    classnot.printStackTrace();
                 }
             }
             catch(IOException ioException){
