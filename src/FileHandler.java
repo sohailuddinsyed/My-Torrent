@@ -1,20 +1,17 @@
 import java.io.*;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.*;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.Path;
 
 public class FileHandler {
     private static String file_name;
     private peerProcess host_peer;
     private byte[][] file_pieces;
     private Integer piece_size;
+    private Integer file_size;
     public FileHandler(peerProcess host_peer) {
-        file_name = host_peer.peer_id.toString() + "/" + host_peer.config_params.get("FileName");
+        file_name = "peer_" + host_peer.peer_id.toString() + "/" + host_peer.config_params.get("FileName");
         this.host_peer = host_peer;
         piece_size = Integer.parseInt(host_peer.config_params.get("PieceSize"));
+        file_size  = Integer.parseInt(host_peer.config_params.get("FileSize"));
         file_pieces = new byte[host_peer.no_of_pieces][piece_size];
     }
 
@@ -28,12 +25,18 @@ public class FileHandler {
 
         int file_bytes_index = 0;
 
-        // Creating byte array for each piece and copying contents from file
         for (int i = 0; i < host_peer.no_of_pieces; i++) {
-            byte[] piece = new byte[piece_size];
-            //Cannot use below because last part may not be same as piece_size
-            //byte[] piece = Arrays.copyOfRange(file_data_in_bytes, i*piece_size, piece_size*(i+1));
-            for (int j = 0; j < piece_size && file_bytes_index<file_data_in_bytes.length; j++) {
+            // Determine the size of the current piece
+            int currentPieceSize = piece_size;
+            
+            // Adjust size for the last piece if file size isn't a perfect multiple of piece size     
+            if (i == host_peer.no_of_pieces - 1 && file_size % piece_size != 0) {
+                currentPieceSize = file_size % piece_size;
+            }
+        
+            byte[] piece = new byte[currentPieceSize];
+            // Copying contents from the file to the current piece
+            for (int j = 0; j < currentPieceSize && file_bytes_index < file_data_in_bytes.length; j++) {
                 piece[j] = file_data_in_bytes[file_bytes_index++];
             }
             file_pieces[i] = piece;
@@ -57,10 +60,13 @@ public class FileHandler {
     public void BuildFile() throws IOException {
         File file = new File(file_name);
         FileOutputStream file_stream = new FileOutputStream(file);
-
         for (int i = 0; i < host_peer.no_of_pieces; i++) {
-            file_stream.write(file_pieces[i]);
+            if(i == host_peer.no_of_pieces - 1) {
+                file_stream.write(file_pieces[i], 0, file_size % piece_size);
+            } else {
+                file_stream.write(file_pieces[i]);
+            }
         }
-        file_stream.close();
+        file_stream.close();    
     }
 }

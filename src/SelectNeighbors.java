@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
+import static java.lang.System.exit;
 
 public class SelectNeighbors extends Thread {
     private peerProcess host_peer;
@@ -65,14 +66,18 @@ public class SelectNeighbors extends Thread {
                         int peer_id = entry.getKey();
                         boolean unchoked = entry.getValue();
                         if(unchoked) 
-                            unchoke_list += " " + peer_id;
+                            unchoke_list += ", " + peer_id;
                     }
                     if(unchoke_list.length() > 0)
-                        host_peer.logger.log("has the preferred neighbors" + unchoke_list);
+                        host_peer.logger.log("has the preferred neighbors" + unchoke_list.substring(1));
                     
                     // Clear downloads to record new values for the next interval
                     host_peer.neighbor_downloads.clear();
                     
+                    // Terminate once host checks the file count
+                    if(host_peer.host_details.has_file && host_peer.completed_peer_files >= host_peer.neighbors_list.size()){
+                        exit(0);         
+                    }
                     // Sleep for interval 'p'
                     Thread.sleep((int)p * 1000);
                 }

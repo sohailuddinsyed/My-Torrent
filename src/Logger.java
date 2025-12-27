@@ -56,10 +56,4 @@ public class Logger {
             e.printStackTrace();
         }
     }
-
-    public static void main(String[] args) {
-        Logger logger = new Logger("1001");
-        logger.log("This is a test log");
-        logger.log("More test log");
-    }
 }

@@ -8,7 +8,6 @@ public class Message {
     private byte[] message_payload;
 
     // Message constructor to initialize message fields
-    // TODO: message_length should be of type byte[]?
     public Message(MessageType message_type, byte[] message_payload) {
         this.message_type = MakeMessageType(message_type);
         this.message_payload = message_payload;

@@ -1,19 +1,15 @@
-import static java.lang.System.console;
 import static java.lang.System.exit;
-
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
 
 public class P2PMessageHandler {
-    peerProcess host_peer; // Current host
-    PeerDetails neighbor_peer; // Neighbor peer to which the current TCP is established
-    Boolean chocked_by_host;
-    int latest_piece_ptr;
+    peerProcess host_peer;      // Current host
+    PeerDetails neighbor_peer;  // Neighbor peer to which the current TCP is established
+    Boolean chocked_by_host;    // Local choked state for each thread
+    int latest_piece_ptr;       // Local pointer to the pending updates
     
     public P2PMessageHandler(peerProcess host_peer, PeerDetails neighbor_peer) {
         this.host_peer     = host_peer;
@@ -51,9 +47,13 @@ public class P2PMessageHandler {
                 }
             }
         }
+
         // Set neighbor bit field
         neighbor_peer.bitfield_piece_index = peer_bitset;
-        // host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
+
+        // The neighbor has file already, so mark the thread as complete and increment completed files
+        host_peer.completed_peer_files += 1;
+        host_peer.completed_threads++;
 
         // Send Interested if the above result is not empty else send NotInterested message
         MessageType msg_type = interested ? MessageType.INTERESTED : MessageType.NOTINTERESTED;
@@ -63,13 +63,14 @@ public class P2PMessageHandler {
         Utils.sendMessage(msg.BuildMessageByteArray(), neighbor_peer.out);
     }
 
+    // Mark as choked by neighbpr
     public void HandleChokeMessage() {
         host_peer.choked_by_neighbors.put(neighbor_peer.peer_id, true);
     }
 
     public void HandleUnChokeMessage() {
         host_peer.choked_by_neighbors.put(neighbor_peer.peer_id, false);
-        // Gets next interested index and sends request message
+        // Gets next interested index and sends request message, re-requests corrupted messages
         int interested_index = Utils.GetInterestIndex(host_peer, neighbor_peer);
         if (interested_index != -1) {
             Message msg = new Message(MessageType.REQUEST, ByteBuffer.allocate(4).putInt(interested_index).array());
@@ -81,10 +82,12 @@ public class P2PMessageHandler {
         }
     }
 
+    // Mark interested neighbor
     public void HandleInterestedMessage() {
         host_peer.neighbors_interested_in_host.put(neighbor_peer.peer_id, true);
     }
 
+    // Mark not interested neighbor
     public void HandleNotInterestedMessage() {
         host_peer.neighbors_interested_in_host.put(neighbor_peer.peer_id, false);
     }
@@ -93,12 +96,17 @@ public class P2PMessageHandler {
     public void HandleHaveMessage(Message message_received) {
         int bitfield_index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();;
         
+        // Update neighbor and check if complete
         neighbor_peer.bitfield_piece_index.set(bitfield_index);
-        // host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
-        
-        // Set the bitfield index received from the neighbor_peer
-        if(host_peer.host_details.has_file)
-            return;
+        if(Utils.CheckAllPiecesReceived(host_peer.neighbors_list.get(neighbor_peer.peer_id).bitfield_piece_index, host_peer.no_of_pieces)){
+            // If Multiple haves from same neighbor - can cause early termination
+            host_peer.completed_peer_files += 1;
+        }
+
+        // If the all have updates have been sent and host received file, increment thread completed count
+        if(latest_piece_ptr == host_peer.no_of_pieces && host_peer.host_details.has_file && host_peer.completed_peer_files == host_peer.neighbors_list.size()){
+            host_peer.completed_threads++;
+        }
 
         // Check if interested
         boolean send_interested = Utils.CheckInterestInIndex(host_peer.host_details, neighbor_peer, bitfield_index);
@@ -110,7 +118,6 @@ public class P2PMessageHandler {
 
     public void HandleRequestMessage(Message message_received, int index) {
         // Don't send data when neighbor is choked
-        // TODO: We set requested_indices as true when a request is sent, this should set back to false in this case
         if (!host_peer.unchoked_by_host.get(neighbor_peer.peer_id) && host_peer.opt_neighbor != neighbor_peer.peer_id)
             return;
 
@@ -133,8 +140,8 @@ public class P2PMessageHandler {
         Message msg = new Message(MessageType.PIECE, buffer.array());
         Utils.sendMessage(msg.BuildMessageByteArray(), neighbor_peer.out);
     }
-
-    public void HandlePieceMessage(Message message_received, int index) throws IOException {
+            
+    public void HandlePieceMessage(Message message_received, int index) throws IOException {         
         // Below should not happen as the piece is sent only with a request and
         // request for a given index is made to a single neighbor
         if (host_peer.host_details.bitfield_piece_index.get(index))
@@ -144,10 +151,12 @@ public class P2PMessageHandler {
         byte[] piece_payload = Arrays.copyOfRange(message_received.GetMessagePayload(), 4,
         message_received.GetMessageLength());
         host_peer.file_handler.SetPiece(index, piece_payload);
-        
+
         // (Broadcast) Add the piece index into the latest piece shared resource for all threads
         host_peer.host_details.latest_piece.add(index);
-
+        host_peer.logger.log("has downloaded the piece " + index + " from " + neighbor_peer.peer_id + ". Now \r\n" + //
+                "the number of pieces it has is " + host_peer.host_details.latest_piece.size());
+        
         // Check if all pieces received and build the file
         if (Utils.CheckAllPiecesReceived(host_peer.host_details.bitfield_piece_index, host_peer.no_of_pieces)) {
             host_peer.file_handler.BuildFile();
@@ -194,52 +203,55 @@ public class P2PMessageHandler {
     }
     
     public void CheckTermination() {
-        // Todo
+        // If all the threads are complete, terminate      
+        if(host_peer.completed_threads == host_peer.neighbors_list.size()) {
+            exit(0);
+        }
     }
 
     private void ProcessMessage(Message message_received) throws IOException {
         MessageType msg_type = message_received.GetMessageType();
          switch(msg_type) {
             case CHOKE: {
-                host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                host_peer.logger.log("is choked by" + neighbor_peer.peer_id);
                 HandleChokeMessage();
                 break;
             }
             case UNCHOKE: {
-                host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                host_peer.logger.log("is unchoked by " + neighbor_peer.peer_id);
                 HandleUnChokeMessage();
                 break;
             }
             case INTERESTED: {
-                host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                host_peer.logger.log("received the 'interested' message from " + neighbor_peer.peer_id);
                 HandleInterestedMessage();
                 break;
             }
             case NOTINTERESTED: {
-                host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                host_peer.logger.log("received 'not interested' message from " + neighbor_peer.peer_id);
                 HandleNotInterestedMessage();
                 break;
             }
             case HAVE: {
                 int index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();;
-                host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from Peer " + neighbor_peer.peer_id);
+                host_peer.logger.log("received the 'have' message from " + neighbor_peer.peer_id + " for the piece " + index);
                 HandleHaveMessage(message_received);
                 break;
             }
             case BITFIELD: {
-                host_peer.logger.log("received " + msg_type.toString() + " message from Peer " + neighbor_peer.peer_id);
+                // host_peer.logger.log("received " + msg_type.toString() + " message from " + neighbor_peer.peer_id);
                 HandleBitFieldMessage(message_received);
                 break;
             }
             case REQUEST: {
                 int index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();
-                host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from Peer " + neighbor_peer.peer_id);
+                // host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from " + neighbor_peer.peer_id);
                 HandleRequestMessage(message_received, index);
                 break;
             }
             case PIECE: {
                 int index = ByteBuffer.wrap(Arrays.copyOfRange(message_received.GetMessagePayload(), 0, 4)).getInt();
-                host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from Peer " + neighbor_peer.peer_id);
+                // host_peer.logger.log("received " + msg_type.toString() + " (" + index + ") message from " + neighbor_peer.peer_id);
                 HandlePieceMessage(message_received, index);
                 break;
             }

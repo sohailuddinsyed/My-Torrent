@@ -47,8 +47,6 @@ public class PeerClient extends Thread{
                 neighbor_peer.out    = out;
                 neighbor_peer.in     = in;
 
-                // host_peer.neighbors_list.put(neighbor_peer.peer_id, neighbor_peer);
-
                 // Create a handshake object with current peer id, build the handshake message
                 // and send it to the neighbor
                 HandShake hand_shake = new HandShake(host_peer.peer_id);
@@ -90,18 +88,6 @@ public class PeerClient extends Thread{
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }
-            }
-        }
-        //send a message to the output stream
-        void sendMessage(String msg)
-        {
-            try{
-                //stream write the message
-                out.writeBytes(msg);
-                out.flush();
-            }
-            catch(IOException ioException){
-                ioException.printStackTrace();
             }
         }
     }

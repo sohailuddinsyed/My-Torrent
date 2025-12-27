@@ -1,5 +1,6 @@
 import java.util.Map;
 import java.util.Random;
+import static java.lang.System.exit;
 
 public class SelectOptNeighbor extends Thread{
     private peerProcess host_peer;
@@ -45,10 +46,17 @@ public class SelectOptNeighbor extends Thread{
                         }
                     }
                     
-                    // 
+                    // Setting optimistic neighbor
                     host_peer.opt_neighbor = opt_neighbor;
                     if(opt_neighbor != 0)
                         host_peer.logger.log("has the optimistically unchocked neighbor " + opt_neighbor);
+
+                    // Terminate once host checks the file count
+                    if(host_peer.host_details.has_file && host_peer.completed_peer_files >= host_peer.neighbors_list.size()){
+                        exit(0);         
+                    }
+
+
                     // Sleep for interval 'm'
                     Thread.sleep((int)m * 1000);
                 }

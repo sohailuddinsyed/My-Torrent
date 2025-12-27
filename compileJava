@@ -1,0 +1,3 @@
+javac src/*.java
+cp src/*.class .
+java StartRemotePeers

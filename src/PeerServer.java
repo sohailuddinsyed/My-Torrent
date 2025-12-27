@@ -11,7 +11,6 @@ public class PeerServer extends Thread {
         this.host_peer = host_peer;
     }
     public void run() {
-        System.out.println("The server is running....");
         ServerSocket listener = null;
 
         // listen and accept connection requests
