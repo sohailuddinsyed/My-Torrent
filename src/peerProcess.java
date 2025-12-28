@@ -39,6 +39,7 @@ public class peerProcess {
         requested_indices            = new HashSet<>();
         neighbor_downloads           = new HashMap<>();
         logger                       = new Logger(peer_id.toString());
+        completed_peer_files         = 0;
     }
 
     // Method to read common.cfg and store values in a hashmap

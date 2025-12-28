@@ -289,6 +289,7 @@ public class P2PMessageHandler {
             // Check for any new pieces received
             if(latest_piece_ptr < host_peer.host_details.latest_piece.size()) {
                 RelayHaveMessages();
+                System.err.println(latest_piece_ptr+" "+host_peer.no_of_pieces);
             }
 
             // Receive message and retrieve the message type
