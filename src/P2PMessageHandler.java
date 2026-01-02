@@ -141,12 +141,7 @@ public class P2PMessageHandler {
         Utils.sendMessage(msg.BuildMessageByteArray(), neighbor_peer.out);
     }
             
-    public void HandlePieceMessage(Message message_received, int index) throws IOException {         
-        // Below should not happen as the piece is sent only with a request and
-        // request for a given index is made to a single neighbor
-        if (host_peer.host_details.bitfield_piece_index.get(index))
-            return;
-            
+    public void HandlePieceMessage(Message message_received, int index) throws IOException {                    
         // Copy the piece and set it in the respective index
         byte[] piece_payload = Arrays.copyOfRange(message_received.GetMessagePayload(), 4,
         message_received.GetMessageLength());
@@ -154,8 +149,7 @@ public class P2PMessageHandler {
 
         // (Broadcast) Add the piece index into the latest piece shared resource for all threads
         host_peer.host_details.latest_piece.add(index);
-        host_peer.logger.log("has downloaded the piece " + index + " from " + neighbor_peer.peer_id + ". Now \r\n" + //
-                "the number of pieces it has is " + host_peer.host_details.latest_piece.size());
+        host_peer.logger.log("has downloaded the piece " + index + " from " + neighbor_peer.peer_id + ". Now the number of pieces it has is " + host_peer.host_details.latest_piece.size());
         
         // Check if all pieces received and build the file
         if (Utils.CheckAllPiecesReceived(host_peer.host_details.bitfield_piece_index, host_peer.no_of_pieces)) {
@@ -213,7 +207,7 @@ public class P2PMessageHandler {
         MessageType msg_type = message_received.GetMessageType();
          switch(msg_type) {
             case CHOKE: {
-                host_peer.logger.log("is choked by" + neighbor_peer.peer_id);
+                host_peer.logger.log("is choked by " + neighbor_peer.peer_id);
                 HandleChokeMessage();
                 break;
             }
@@ -289,7 +283,6 @@ public class P2PMessageHandler {
             // Check for any new pieces received
             if(latest_piece_ptr < host_peer.host_details.latest_piece.size()) {
                 RelayHaveMessages();
-                System.err.println(latest_piece_ptr+" "+host_peer.no_of_pieces);
             }
 
             // Receive message and retrieve the message type

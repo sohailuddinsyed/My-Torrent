@@ -89,23 +89,23 @@ public class peerProcess {
             file.close();
 
             // Create host directory to store 'theFile'
-            String curr_dir = System.getProperty("user.dir");
-            String full_dir_path = curr_dir + "/" + "peer_" + peer_id;
-            File dir = new File(full_dir_path);
-            dir.mkdir();
+            // String curr_dir = System.getProperty("user.dir");
+            // String full_dir_path = curr_dir + "/" + "peer_" + peer_id;
+            // File dir = new File(full_dir_path);
+            // dir.mkdir();
 
             // Copy 'thefile' to host dir if host has file
-            if(host_details.has_file) {
-                File source = new File(curr_dir + "/thefile");
-                File dest = new File(curr_dir + "/peer_" + peer_id + "/thefile");
-                if(!dest.exists()) {
-                    try {
-                        Files.copy(source.toPath(), dest.toPath());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } 
-                }
-            }
+            // if(host_details.has_file) {
+            //     File source = new File(curr_dir + "/thefile");
+            //     File dest = new File(curr_dir + "/peer_" + peer_id + "/thefile");
+            //     if(!dest.exists()) {
+            //         try {
+            //             Files.copy(source.toPath(), dest.toPath());
+            //         } catch (IOException e) {
+            //             e.printStackTrace();
+            //         } 
+            //     }
+            // }
         }
         catch (Exception ex) {
             System.out.println(ex.toString());
